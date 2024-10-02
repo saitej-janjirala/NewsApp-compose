@@ -1,0 +1,15 @@
+/app
+  /data
+    /repository   // Repository implementations (Retrofit, Room, etc.)
+    /local        // Room database and DAO interfaces
+    /remote       // Retrofit interface
+    /model        // DTOs, database entities, network models
+  /domain
+    /repository   // Repository interfaces
+    /usecase      // Use cases
+    /model        // Domain models (business logic-specific models)
+  /presentation
+    /ui           // UI components (e.g., Activities, Fragments, Jetpack Compose)
+    /viewmodel    // ViewModels following MVI pattern
+    /intent       // User intents
+    /state        // UI states
