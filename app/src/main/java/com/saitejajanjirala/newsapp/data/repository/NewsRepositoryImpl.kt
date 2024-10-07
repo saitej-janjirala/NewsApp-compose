@@ -8,26 +8,24 @@ import com.saitejajanjirala.newsapp.data.remote.ApiService
 import com.saitejajanjirala.newsapp.domain.models.Result
 import com.saitejajanjirala.newsapp.domain.repository.NewsRepository
 import com.saitejajanjirala.newsapp.util.Keys
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import java.net.UnknownHostException
 import javax.inject.Inject
 
 
 class NewsRepositoryImpl @Inject constructor(
     private val apiService: ApiService,
-    private val newsDao: NewsDao
+    private val newsDao: NewsDao,
     ) : NewsRepository {
 
     override suspend fun getNews(category: String): Flow<Result<List<Article>>> = flow {
         // Emit cached data first (if available) before making the network call
         val cachedArticles = newsDao.getAllArticles()
-        if (cachedArticles.isNotEmpty()) {
-            emit(Result.Success(cachedArticles))
-        } else {
-            emit(Result.Loading()) // Optionally show loading state if no cached data
-        }
+        emit(Result.Success(cachedArticles))
 
         try {
             // Fetch data from the network
@@ -37,27 +35,27 @@ class NewsRepositoryImpl @Inject constructor(
                     val articles = it.articles ?: emptyList()
                     // Insert into the database and emit from the database again
                     insertIntoDatabase(articles)
-                    emit(Result.Success(newsDao.getAllArticles())) // Emit the updated articles
+                    fetchFromDatabase() // Emit the updated articles
                 } else {
                     emit(Result.Error("An unexpected error occurred"))
-                    emit(Result.Success(newsDao.getAllArticles())) // Fallback to cached data
+                    fetchFromDatabase() // Fallback to cached data
                 }
             } ?: run {
                 // Handle null response
                 emit(Result.Error("No response from the server"))
-                emit(Result.Success(newsDao.getAllArticles())) // Fallback to cached data
+                fetchFromDatabase() // Fallback to cached data
             }
         } catch (e: UnknownHostException) {
             // Handle no internet connection
             emit(Result.Error("Couldn't reach the server. Check your internet connection."))
-            delay(1000) // Optional delay for retrying
-            emit(Result.Success(newsDao.getAllArticles())) // Fallback to cached data
+             // Optional delay for retrying
+            fetchFromDatabase() // Fallback to cached data
         } catch (e: Exception) {
             // Handle any unexpected errors
             e.printStackTrace()
             Log.e("NewsRepository", e.message.toString())
             emit(Result.Error("An unexpected error occurred: ${e.message}"))
-            emit(Result.Success(newsDao.getAllArticles())) // Fallback to cached data
+            fetchFromDatabase() // Fallback to cached data
         }
     }
 
