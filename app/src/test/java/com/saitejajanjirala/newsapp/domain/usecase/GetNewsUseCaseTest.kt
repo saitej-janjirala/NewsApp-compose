@@ -2,17 +2,24 @@ package com.saitejajanjirala.newsapp.domain.usecase
 
 import app.cash.turbine.test
 import com.saitejajanjirala.newsapp.data.models.Article
+import com.saitejajanjirala.newsapp.data.models.HeadLine
 import com.saitejajanjirala.newsapp.data.models.Source
 import com.saitejajanjirala.newsapp.domain.repository.NewsRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
-import org.mockito.Mockito.mock
 import com.saitejajanjirala.newsapp.domain.models.Result
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.mockk
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.test.advanceUntilIdle
 import org.junit.Assert.assertEquals
-import org.mockito.kotlin.whenever
+
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class GetNewsUseCaseTest {
@@ -23,13 +30,15 @@ class GetNewsUseCaseTest {
     @Before
     fun setUp() {
         // Here, we mock the repository
-        newsRepository = mock()
+        newsRepository = mockk()
         getNewsUseCase = GetNewsUseCase(newsRepository) // Inject the mock repository into the use case
     }
 
     @Test
     fun `test GetNewsUseCase returns success result`() = runTest {
         // Mock articles
+
+
         val articles = listOf(
             Article(
                 author = "John Doe",
@@ -44,22 +53,32 @@ class GetNewsUseCaseTest {
             )
         )
 
+
         val successResult = Result.Success(articles)
 
         // Mock the repository to return a flow emitting the success result
-        whenever(newsRepository.getNews("health")).thenReturn(flow {
-            emit(successResult)
-        })
+        coEvery { (newsRepository.getNews("health"))} returns flowOf(successResult)
 
         // Act: Call the use case
-        val resultFlow = getNewsUseCase.invoke("health")
+        val result = getNewsUseCase.invoke("health").take(1)
 
         // Assert: Verify the result
-        resultFlow.test {
-            val item = awaitItem()
-            assertEquals(successResult,item)
-            awaitComplete()
-        }
+        advanceUntilIdle()
+        assertEquals(successResult,result.toList()[0])
+
+
+
+    }
+
+    @Test
+    fun `test GetNewsUseCase returns error result`() = runTest{
+        val error = "Unexpected error Occured"
+        val errorResult = Result.Error<List<Article>>(error)
+        coEvery { (newsRepository.getNews("health"))} returns flowOf(errorResult)
+        val result = getNewsUseCase.invoke("health").take(1)
+        advanceUntilIdle()
+        assertEquals(errorResult,result.toList()[0])
+        coVerify { newsRepository.getNews("health") }
     }
 
 

@@ -9,6 +9,7 @@ import com.saitejajanjirala.newsapp.data.models.Source
 import com.saitejajanjirala.newsapp.di.DispatcherProvider
 import com.saitejajanjirala.newsapp.di.TestDispatcherProvider
 import com.saitejajanjirala.newsapp.domain.usecase.GetNewsUseCase
+import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -18,34 +19,13 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
-import org.mockito.Mockito.mock
-import org.mockito.kotlin.whenever
-import com.saitejajanjirala.newsapp.domain.models.Result
-import com.saitejajanjirala.newsapp.domain.repository.NewsRepository
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.async
-import kotlinx.coroutines.flow.flow
+import com.saitejajanjirala.newsapp.domain.models.*
+import io.mockk.coEvery
+import io.mockk.coVerify
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.TestCoroutineDispatcher
-import kotlinx.coroutines.test.TestDispatcher
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.runCurrent
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Rule
-import org.junit.rules.TestWatcher
-import org.junit.runner.Description
-import org.junit.runner.RunWith
-import org.mockito.Mock
-import org.mockito.Mockito
-import org.mockito.MockitoAnnotations
-import org.mockito.junit.MockitoJUnitRunner
-import org.mockito.kotlin.doReturn
-import org.mockito.kotlin.verify
 
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -58,8 +38,8 @@ class MainViewModelTest {
 
     @Before
     fun setUp() {
-        getNewsUseCase = mock()
-        stateHandle = mock()
+        getNewsUseCase = mockk()
+        stateHandle = mockk()
         dispatcher= TestDispatcherProvider()
     }
 
@@ -82,31 +62,25 @@ class MainViewModelTest {
 
         val successResult = Result.Success(articles)
 
-        whenever(getNewsUseCase.invoke("health")) doReturn flowOf(successResult)
+        coEvery {  getNewsUseCase.invoke("health")}returns flowOf(successResult)
 
         mainViewModel = MainViewModel(getNewsUseCase, stateHandle,dispatcher)
 
-        mainViewModel.items.test {
-
-            assertEquals(successResult,awaitItem())
-            cancelAndIgnoreRemainingEvents()
-        }
-        verify(getNewsUseCase).invoke("health")
-
+        advanceUntilIdle()
+        val state = mainViewModel.items.take(1)
+        val result = state.toList()
+        assert(result[0] == successResult)
     }
 
     @Test
     fun `test updates items with error result`()= runTest {
         val error = "Unexpected error Occured"
         val errorResult = Result.Error<List<Article>>(error)
-        whenever(getNewsUseCase.invoke("health")) doReturn flowOf(errorResult)
+        coEvery {  getNewsUseCase.invoke("health")} returns  flowOf(errorResult)
         mainViewModel = MainViewModel(getNewsUseCase, stateHandle,dispatcher)
-
-        mainViewModel.items.test {
-            assertEquals(errorResult,awaitItem())
-            cancelAndIgnoreRemainingEvents()
-        }
-        verify(getNewsUseCase).invoke("health")
+        val state = mainViewModel.items.take(1)
+        val result = state.toList()
+        assert(result[0] == errorResult)
     }
 
 

@@ -53,7 +53,6 @@ object AppModule{
                     val originalUrl = originalRequest.url
                     val newRequest=originalRequest.newBuilder().apply {
                         url(originalUrl.newBuilder()
-                            .addQueryParameter("apiKey", BuildConfig.API_KEY)
                             .addQueryParameter("language","en")
                             .addQueryParameter("pageSize","20")
                             .addQueryParameter("country","us").build())

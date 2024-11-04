@@ -20,7 +20,6 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-        buildConfigField("String", "API_KEY", "\"0e6e4075e7344f96ab1397a2450272de\"")
 
     }
 
@@ -103,6 +102,9 @@ dependencies {
     testImplementation(libs.mockito.kotlin)
     testImplementation (libs.kotlinx.coroutines.test)
     testImplementation(libs.core.testing)
+    testImplementation(libs.mockk)
+    androidTestImplementation(libs.mockk)
+
 
 
     testImplementation(libs.turbine)
